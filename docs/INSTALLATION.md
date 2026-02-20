@@ -8,7 +8,7 @@
 ## Package Install
 
 ```bash
-npm i @rayanbazbouz/discord-chat-exporter
+npm i @rayanmustafa/discord-chat-exporter
 ```
 
 ## Optional Dependencies by Feature

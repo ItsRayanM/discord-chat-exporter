@@ -1,4 +1,4 @@
-# @rayanbazbouz/discord-chat-exporter
+# @rayanmustafa/discord-chat-exporter
 
 High-fidelity Discord transcript exporter for bot-based workflows.
 
@@ -56,7 +56,7 @@ Complete docs are available in `docs/README.md` and the full `docs/` index.
 ## Install
 
 ```bash
-npm i @rayanbazbouz/discord-chat-exporter
+npm i @rayanmustafa/discord-chat-exporter
 ```
 
 Optional format dependencies:
@@ -75,7 +75,7 @@ import {
   GoogleGeminiProvider,
   AnthropicClaudeProvider,
   OpenAIProvider,
-} from "@rayanbazbouz/discord-chat-exporter";
+} from "@rayanmustafa/discord-chat-exporter";
 
 const exporter = createExporter();
 

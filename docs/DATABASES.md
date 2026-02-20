@@ -96,7 +96,7 @@ All drivers store the same semantic payload:
 Use `registerDatabaseAdapter` for any non-built-in database:
 
 ```ts
-import { createExporter } from "@rayanbazbouz/discord-chat-exporter";
+import { createExporter } from "@rayanmustafa/discord-chat-exporter";
 
 const exporter = createExporter();
 

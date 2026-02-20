@@ -1,6 +1,6 @@
 # Discord Chat Exporter Docs
 
-This directory is the complete documentation for `@rayanbazbouz/discord-chat-exporter` based on the current source code in `src/`.
+This directory is the complete documentation for `@rayanmustafa/discord-chat-exporter` based on the current source code in `src/`.
 
 ## Scope
 
@@ -36,7 +36,7 @@ This directory is the complete documentation for `@rayanbazbouz/discord-chat-exp
 ## Quick Start (API)
 
 ```ts
-import { createExporter } from "@rayanbazbouz/discord-chat-exporter";
+import { createExporter } from "@rayanmustafa/discord-chat-exporter";
 
 const exporter = createExporter();
 
