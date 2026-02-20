@@ -155,7 +155,7 @@ export function buildTranscript(options: {
   return {
     version: "1",
     exportedAt: new Date().toISOString(),
-    exporter: { name: "@rayanbazbouz/discord-chat-exporter", version: exporterVersion },
+    exporter: { name: "@rayanmustafa/discord-chat-exporter", version: exporterVersion },
     meta: {
       sourceChannelIds: [channel.id, ...threads.map((t) => t.id)],
       intentsSatisfied: { messageContent: true },
