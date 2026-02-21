@@ -1,65 +1,99 @@
+<div align="center">
+
 # @rayanmustafa/discord-chat-exporter
 
-High-fidelity Discord transcript exporter for bot-based workflows.
+**High-fidelity Discord transcript exporter for bot-based workflows.**
 
-## Full Documentation
+[![npm version](https://img.shields.io/npm/v/@rayanmustafa/discord-chat-exporter.svg)](https://npmjs.org/package/@rayanmustafa/discord-chat-exporter)
+[![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue.svg)](https://www.typescriptlang.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
-Complete docs are available in `docs/README.md` and the full `docs/` index.
+</div>
 
-## What is implemented now
+Welcome to the definitive backend-focused, highly customizable Discord channel export engine. Designed for complete compliance with Discord’s API using _Bot Tokens Only_, this tool safely pulls full thread histories, downloads attachments, generates beautiful output formats, and pushes data to your favorite cloud platforms and databases.
 
-- Bot-token-only export flow (Discord API compliant)
-- Channel + thread history export with pagination and retry handling
-- Canonical transcript model preserving raw Discord message payloads
-- Advanced filters (`AND`/`OR`, nested groups, content/state/type/time/user filters)
-- Attachment modes: `external-link`, `local-download`, `both`, `base64-inline`
-- Output formats:
-  - `json-full`, `json-clean`
-  - `txt`, `md`, `csv`
-  - `html-single`, `html-bundle`
-  - `pdf` (optional dependency: `playwright`)
-  - `xml`
-  - `sqlite` (optional dependency: `better-sqlite3`)
-  - `docx` (optional dependency: `docx`)
-  - `zip` with optional AES-256 encryption (`archiver-zip-encrypted`)
-  - `analytics-json`
-- Future-phase features now implemented:
-  - Incremental export state/checkpoints
-  - Split/chunk export policy by messages/bytes
-  - Watermark + read-only + TOC + accessibility HTML modes
-  - Custom HTML templates via `render.html.templatePath` / `--html-template`
-  - Analytics report module (counts, mentions, words, heatmap, response metrics, highlights)
-  - AI summary plugin system with built-in `heuristic` provider
-  - Google Gemini provider (`GoogleGeminiProvider`)
-  - Anthropic Claude provider (`AnthropicClaudeProvider`)
-  - OpenAI provider (`OpenAIProvider`)
-  - OpenAI-compatible provider adapter (`OpenAICompatibleProvider`)
-- Live recorder for `create/update/delete/reaction` events (NDJSON)
-- Ticket close helper for `discord.js` integrations
-- Advanced ticket close helper (`createAdvancedTicketCloseHandler`) with post-actions
-- Output delivery targets:
-  - `filesystem` (default)
-  - `discord-channel` (upload artifacts directly to a Discord channel)
-  - `both` (save locally and upload to Discord)
-- Database sink (`output.database`) with built-in drivers:
-  - `sqlite`, `postgres`, `mysql`, `mongodb`, `mongoose`
-  - custom drivers via `exporter.registerDatabaseAdapter(...)`
-- Batch export API (`exportBatch`) with per-channel isolation and master index
-- Cloud storage sinks (`output.storage`): `s3` (S3/R2/MinIO), `gcs`, `azure-blob`
-- Webhook delivery (`output.webhooks`): generic HTTP, Discord webhook, Slack webhook
-- Redaction engine (`redaction`) for PII/token profiles + custom regex
-- Delta export mode (`delta`) with checkpoint and recorder merge best-effort
-- Compliance artifacts (`compliance`): manifest + optional Ed25519 signature
-- Monitoring hooks (`monitoring.onEvent`) + CLI progress JSONL
-- Scheduler commands: `schedule add/list/run/daemon`
+> [!NOTE]  
+> Complete documentation is available in `docs/README.md` and the full `docs/` index.
 
-## Install
+---
+
+## 📑 Table of Contents
+
+- [What is implemented now](#-what-is-implemented-now)
+- [Architecture Overview](#-architecture-overview)
+- [Installation](#-installation)
+- [CLI Quick Start](#-cli-quick-start)
+- [TypeScript API Reference](#-typescript-api-reference)
+- [Integrations (AI, Databases, Cloud)](#-integrations)
+- [Important Limits](#-important-limits)
+- [Internal Architecture & Development](#-internal-architecture--development)
+
+---
+
+## 🍎 What is implemented now
+
+### Core Capabilities
+
+- **Bot-Token-Only Flow**: Fully Discord API compliant.
+- **Deep History Extraction**: Channel + thread history export with pagination and retry handling.
+- **Canonical Model**: Preserves raw Discord message payloads for historic accuracy.
+- **Advanced Filtering**: Combine `AND`/`OR` conditions, nested groups, and filter by content, state, type, time, or user.
+- **Attachment Handling Modes**: `external-link`, `local-download`, `both`, or `base64-inline`.
+- **Live Recorder**: Capture `create`, `update`, `delete`, and `reaction` events locally (NDJSON format).
+- **Ticket Handling**: Ticket close helper for `discord.js` integrations, plus an advanced handler (`createAdvancedTicketCloseHandler`) with post-actions.
+
+### Output Formats
+
+| Format Group         | Supported Formats                                                                |
+| -------------------- | -------------------------------------------------------------------------------- |
+| **JSON**             | `json-full`, `json-clean`, `analytics-json`                                      |
+| **Text & Documents** | `txt`, `md`, `csv`, `pdf` (req. `playwright`), `xml`, `docx` (req. `docx`)       |
+| **HTML UI**          | `html-single`, `html-bundle` (Custom templates via `--html-template`)            |
+| **Databases**        | `sqlite` (req. `better-sqlite3`), and other SQL/NoSQL targets (see Integrations) |
+| **Archives**         | `zip` with optional AES-256 encryption (`archiver-zip-encrypted`)                |
+
+### Enterprise Grade Features
+
+- **Incremental & Checkpoint**: Incremental export state, split/chunk exports by message count/byte size.
+- **Delta Mode**: Checkpoint and live recorder merge (best-effort).
+- **Redaction Engine**: Native PII filters (email, phone, tokens) and custom regex strings.
+- **Compliance Artifacts**: End-to-end manifest and optional Ed25519 signatures.
+- **Batch Processing**: Isolated per-channel exports with a master export index (`exportBatch`).
+- **Monitoring & CLI**: Monitoring hooks (`monitoring.onEvent`), CLI progress reporting via JSONL, and a built-in scheduler (`schedule add/list/run/daemon`).
+- **Context7 + AI Support**: Mention `@rayanmustafa/discord-chat-exporter` in an AI IDE (like Cursor) for automatic CLI script generation!
+
+---
+
+## 🗺️ Architecture Overview
+
+```mermaid
+graph TD
+    A[Discord API] -->|Bot Token| B(Core Data Extract)
+    B --> C{Filtering & Attachments}
+    C --> D[Redaction & PII Filters]
+    D --> E[Rendering Pipeline]
+
+    E --> F[HTML / JSON / PDF / Zip]
+    E --> G[Database Sinks]
+    E --> H[Cloud & Webhooks]
+    E --> I[AI Summaries]
+
+    G -.-> J[(Postgres / MongoDB / S3 / R2)]
+```
+
+---
+
+## 📦 Installation
+
+Install the core package using NPM:
 
 ```bash
 npm i @rayanmustafa/discord-chat-exporter
 ```
 
-Optional format dependencies:
+### Optional Format Dependencies
+
+Install any database drivers or external tools you intend to use alongside it:
 
 ```bash
 npm i playwright better-sqlite3 docx archiver-zip-encrypted pg mysql2 mongodb mongoose \
@@ -67,7 +101,96 @@ npm i playwright better-sqlite3 docx archiver-zip-encrypted pg mysql2 mongodb mo
   node-cron json-canonicalize libphonenumber-js flexsearch
 ```
 
-## API Example
+---
+
+## 🚀 CLI Quick Start
+
+### Basic Export with Feature Enhancements
+
+```bash
+npx dcexport export \
+  --token "$DISCORD_BOT_TOKEN" \
+  --channel 123456789012345678 \
+  --formats html-single,json-full,analytics-json,pdf,zip \
+  --attachments-mode both \
+  --watermark "Internal Use" \
+  --read-only \
+  --toc \
+  --split-max-messages 50000 \
+  --incremental \
+  --analytics \
+  --analytics-heatmap \
+  --ai \
+  --ai-provider gemini \
+  --output-target both \
+  --discord-output-channel 987654321098765432 \
+  --db-sqlite ./exports/transcripts.sqlite \
+  --out ./exports
+```
+
+### Direct Delivery to Discord Channel
+
+```bash
+npx dcexport export \
+  --token "$DISCORD_BOT_TOKEN" \
+  --channel 123456789012345678 \
+  --formats html-single,json-full \
+  --output-target discord-channel \
+  --discord-output-channel 987654321098765432 \
+  --discord-output-content "Transcript ready"
+```
+
+### Cloud Storage, Redaction, and Webhooks
+
+```bash
+npx dcexport export \
+  --token "$DISCORD_BOT_TOKEN" \
+  --channel 123456789012345678 \
+  --formats html-single,json-full,zip \
+  --storage-enable --storage-provider s3 \
+  --storage-bucket my-transcripts --storage-region eu-central-1 --storage-prefix discord \
+  --webhook-generic https://example.com/hook \
+  --redaction --redaction-profiles email,phone,token \
+  --delta --delta-checkpoint ./.dcexport/delta-123.json \
+  --manifest \
+  --sign-ed25519-key ./keys/ed25519-private.pem \
+  --sign-key-id key-2026-01 \
+  --progress-jsonl ./exports/progress.jsonl \
+  --out ./exports
+```
+
+### Batch Processing
+
+```bash
+npx dcexport export-batch \
+  --token "$DISCORD_BOT_TOKEN" \
+  --channels 111111111111111111,222222222222222222,333333333333333333 \
+  --formats html-bundle,json-full \
+  --out ./exports \
+  --batch-concurrency 3 \
+  --batch-merged
+```
+
+### Tools & Schedulers
+
+```bash
+# Doctor checks
+npx dcexport doctor --token "$DISCORD_BOT_TOKEN" --channel 123456789012345678
+
+# Start / Stop Live Recorder
+npx dcexport record start --token "$DISCORD_BOT_TOKEN" --out ./.dcexport/events.ndjson
+npx dcexport record stop
+
+# Scheduler
+npx dcexport schedule add --job-file ./jobs.json --state ./.dcexport/scheduler-state.json
+npx dcexport schedule daemon --jobs ./jobs.json --state ./.dcexport/scheduler-state.json
+```
+
+---
+
+## 💻 TypeScript API Reference
+
+### Full Configuration Example
 
 ```ts
 import {
@@ -79,26 +202,32 @@ import {
 
 const exporter = createExporter();
 
-exporter.registerAIProvider(new OpenAIProvider({ apiKey: process.env.OPENAI_API_KEY! }));
-exporter.registerAIProvider(new GoogleGeminiProvider({ apiKey: process.env.GEMINI_API_KEY! }));
-exporter.registerAIProvider(new AnthropicClaudeProvider({ apiKey: process.env.ANTHROPIC_API_KEY! }));
+// Register AI Providers
+exporter.registerAIProvider(
+  new OpenAIProvider({ apiKey: process.env.OPENAI_API_KEY! }),
+);
+exporter.registerAIProvider(
+  new GoogleGeminiProvider({ apiKey: process.env.GEMINI_API_KEY! }),
+);
+exporter.registerAIProvider(
+  new AnthropicClaudeProvider({ apiKey: process.env.ANTHROPIC_API_KEY! }),
+);
 
 const result = await exporter.exportChannel({
   token: process.env.DISCORD_BOT_TOKEN!,
   channelId: "123456789012345678",
   formats: ["html-single", "json-full", "analytics-json", "zip"],
-  attachments: {
-    mode: "both",
-    downloadConcurrency: 4,
-  },
+  attachments: { mode: "both", downloadConcurrency: 4 },
+
+  // Custom Display & Render options
   render: {
     watermark: "Internal Use",
     readOnly: true,
     includeTableOfContents: true,
-    splitPolicy: {
-      maxMessagesPerChunk: 50000,
-    },
+    splitPolicy: { maxMessagesPerChunk: 50000 },
   },
+
+  // Output and Logging Delivery
   output: {
     dir: "./exports",
     target: "both",
@@ -130,22 +259,16 @@ const result = await exporter.exportChannel({
       ],
     },
     basename: "ticket-1234",
-    incremental: {
-      enabled: true,
-    },
+    incremental: { enabled: true },
   },
+
+  // Extra Parsing
   analytics: {
     enabled: true,
     includeHeatmap: true,
-    ai: {
-      enabled: true,
-      providerId: "gemini",
-    },
+    ai: { enabled: true, providerId: "gemini" },
   },
-  redaction: {
-    enabled: true,
-    profiles: ["email", "phone", "token"],
-  },
+  redaction: { enabled: true, profiles: ["email", "phone", "token"] },
   delta: {
     enabled: true,
     checkpointFile: "./exports/.dcexport/delta-123.json",
@@ -168,30 +291,15 @@ const result = await exporter.exportChannel({
 console.log(result.stats, result.analyticsReport, result.aiResult);
 ```
 
-Batch export example:
+### Custom Database Integrations
 
-```ts
-const batchResult = await exporter.exportBatch({
-  token: process.env.DISCORD_BOT_TOKEN!,
-  channelIds: ["111", "222", "333"],
-  formats: ["html-bundle", "json-full"],
-  output: { dir: "./exports" },
-  batch: {
-    concurrency: 3,
-    includeMasterIndex: true,
-  },
-});
-
-console.log(batchResult.stats, batchResult.masterIndex?.path);
-```
-
-Custom database adapter example:
+Instead of native drivers, you can register custom sinks dynamically:
 
 ```ts
 exporter.registerDatabaseAdapter({
   id: "firestore",
   async persist(ctx) {
-    // write ctx.transcript / ctx.stats / ctx.request to your database
+    // Write ctx.transcript, ctx.stats, or ctx.request to Firestore
     return {
       driver: "firestore",
       exportId: "doc_123",
@@ -201,147 +309,73 @@ exporter.registerDatabaseAdapter({
 });
 ```
 
-## Popular AI Providers
+---
 
-- `openai`: register `OpenAIProvider` with `OPENAI_API_KEY`
-- `gemini`: register `GoogleGeminiProvider` with `GEMINI_API_KEY` (or `GOOGLE_API_KEY`)
-- `anthropic`: register `AnthropicClaudeProvider` with `ANTHROPIC_API_KEY`
-- `openai-compatible`: use `OpenAICompatibleProvider` for providers with OpenAI-style APIs (for example Groq, Mistral, Together, xAI)
+## 🔗 Integrations
 
-## CLI Examples
+### Database Drivers
 
-```bash
-# Provider keys (CLI auto-registers when present)
-export OPENAI_API_KEY="..."
-export GEMINI_API_KEY="..."
-export ANTHROPIC_API_KEY="..."
+You can log and pipeline messages to relational or document databases automatically. Ensure the target dependency is installed (`npm i pg`, `npm i mongodb`, etc.):
 
-# Rich export with future features
-npx dcexport export \
-  --token "$DISCORD_BOT_TOKEN" \
-  --channel 123456789012345678 \
-  --formats html-single,json-full,analytics-json,pdf,zip \
-  --attachments-mode both \
-  --watermark "Internal Use" \
-  --read-only \
-  --toc \
-  --split-max-messages 50000 \
-  --incremental \
-  --analytics \
-  --analytics-heatmap \
-  --ai \
-  --ai-provider gemini \
-  --output-target both \
-  --discord-output-channel 987654321098765432 \
-  --db-sqlite ./exports/transcripts.sqlite \
-  --out ./exports
+- `sqlite` (local file DB)
+- `postgres`
+- `mysql`
+- `mongodb`
+- `mongoose`
 
-# Custom HTML template
-npx dcexport export \
-  --token "$DISCORD_BOT_TOKEN" \
-  --channel 123456789012345678 \
-  --formats html-single \
-  --html-template ./templates/discord-like.html \
-  --out ./exports
+### AI Capabilities
 
-# PostgreSQL database sink
-npx dcexport export \
-  --token "$DISCORD_BOT_TOKEN" \
-  --channel 123456789012345678 \
-  --formats html-single,json-full \
-  --db-driver postgres \
-  --db-connection "postgres://user:pass@localhost:5432/transcripts" \
-  --db-tls \
-  --db-table exports_log \
-  --out ./exports
+Native AI plugins parse large channels intelligently and return analytics and summaries.
 
-# MongoDB / Mongoose sink
-npx dcexport export \
-  --token "$DISCORD_BOT_TOKEN" \
-  --channel 123456789012345678 \
-  --formats json-full \
-  --db-driver mongodb \
-  --db-connection "mongodb://localhost:27017/transcripts" \
-  --db-collection exports_log \
-  --out ./exports
+- `openai`: Register `OpenAIProvider` with `OPENAI_API_KEY`.
+- `gemini`: Register `GoogleGeminiProvider` with `GEMINI_API_KEY` (or `GOOGLE_API_KEY`).
+- `anthropic`: Register `AnthropicClaudeProvider` with `ANTHROPIC_API_KEY`.
+- `openai-compatible`: Use `OpenAICompatibleProvider` for systems with OpenAI-style APIs like Groq, Mistral, Together, and xAI.
 
-# Direct delivery to Discord channel with temporary local storage
-npx dcexport export \
-  --token "$DISCORD_BOT_TOKEN" \
-  --channel 123456789012345678 \
-  --formats html-single,json-full \
-  --output-target discord-channel \
-  --discord-output-channel 987654321098765432 \
-  --discord-output-content "Transcript ready"
+### Cloud Storage Sinks (`output.storage`)
 
-# Batch export with master index + merged transcript
-npx dcexport export-batch \
-  --token "$DISCORD_BOT_TOKEN" \
-  --channels 111111111111111111,222222222222222222,333333333333333333 \
-  --formats html-bundle,json-full \
-  --out ./exports \
-  --batch-concurrency 3 \
-  --batch-merged
+- `s3` (AWS S3, Cloudflare R2, MinIO)
+- `gcs` (Google Cloud Storage)
+- `azure-blob` (Azure Object Storage)
 
-# Cloud storage + webhook + redaction + delta + compliance signature
-npx dcexport export \
-  --token "$DISCORD_BOT_TOKEN" \
-  --channel 123456789012345678 \
-  --formats html-single,json-full,zip \
-  --storage-enable \
-  --storage-provider s3 \
-  --storage-bucket my-transcripts \
-  --storage-region eu-central-1 \
-  --storage-prefix discord \
-  --webhook-generic https://example.com/hook \
-  --redaction \
-  --redaction-profiles email,phone,token \
-  --delta \
-  --delta-checkpoint ./.dcexport/delta-123.json \
-  --manifest \
-  --sign-ed25519-key ./keys/ed25519-private.pem \
-  --sign-key-id key-2026-01 \
-  --progress-jsonl ./exports/progress.jsonl \
-  --out ./exports
+### Output Delivery Targets
 
-# Doctor checks
-npx dcexport doctor --token "$DISCORD_BOT_TOKEN" --channel 123456789012345678
+Choose where exports deploy naturally:
 
-# Start detached recorder
-npx dcexport record start --token "$DISCORD_BOT_TOKEN" --out ./.dcexport/events.ndjson
+- `filesystem` (Default: Direct export to local `./out` folder).
+- `discord-channel` (Upload artifacts directly out to a Discord channel. Customize via `content`/`getContent`, embeds via `embed`/`getEmbeds`, file list via `{{files}}` or `includeFileList`).
+- `both` (Save locally AND upload to Discord).
 
-# Stop recorder
-npx dcexport record stop
+---
 
-# Scheduler
-npx dcexport schedule add --job-file ./jobs.json --state ./.dcexport/scheduler-state.json
-npx dcexport schedule list --state ./.dcexport/scheduler-state.json
-npx dcexport schedule run --job-id daily-ticket-exports --state ./.dcexport/scheduler-state.json
-npx dcexport schedule daemon --jobs ./jobs.json --state ./.dcexport/scheduler-state.json
-```
+## ⚠️ Important Limits
 
-## Important limits
+> [!WARNING]
+>
+> - **Historic Information Loss**: Historic Edit/Delete timelines cannot be reconstructed entirely from Discord REST APIs (Use the live `-record` feature for complete audit trails).
+> - **Content Intent Requirements**: Complete message content requires the `Message Content Intent` permission toggled in your bot application page.
+> - **Temporary Links**: Discord signed attachment URLs may expire. The exporter retries connections best-effort.
+> - **Interactive Data**: Certain Interaction and Modal payload histories are only accessible via the Live recording pipeline.
 
-- Historic edit/delete timelines cannot be reconstructed completely from Discord REST history.
-- Message content access depends on `Message Content Intent` policies.
-- Signed attachment URLs may expire; exporter retries best-effort.
-- Some interaction/modal payload history is only available via live recording.
+---
 
-## Internal architecture
+## 🏗️ Internal Architecture & Development
 
-- Feature-oriented modules under `src/features/*` with layered internals:
-  - `domain`: core contracts and invariants
-  - `application`: use-cases and orchestration
-  - `infrastructure`: adapters/IO integrations
-- CLI surface in `src/modules/cli/*` (typed Commander parsing + Zod validation).
-- Shared primitives in `src/shared/*`:
+Our scalable, layered internal structure safely divides parsing from CLI presentation:
+
+- **`src/modules/*`**: Core engine modules separated logically:
+  - `domain`: Contracts & Invariants.
+  - `application`: Service Use-Cases & orchestration.
+  - `infrastructure`: Real-world adapters & HTTP IO capabilities.
+- **`src/modules/cli/*`**: Typed CLI parsing via Commander, runtime parameter generation validated by Zod.
+- **`src/shared/*`**: Tooling interfaces:
   - `shared/utils/snowflake.ts`
-  - `shared/async/concurrency.ts` (via `p-limit`)
+  - `shared/async/concurrency.ts` (powered mechanically via `p-limit`)
   - `shared/json/safe-json.ts`
   - `shared/errors/*`
-- Public compatibility preserved through `src/index.ts` and `src/types.ts`.
+- **Typing Integrity**: Public endpoints correctly structured via `src/index.ts` and `src/types.ts`.
 
-## Development
+### Development Scripts
 
 ```bash
 npm run lint

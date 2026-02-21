@@ -1,58 +1,49 @@
-# AI and Analytics
+# Analytics & AI Integration
 
-## Analytics Module
+The Analytics engine generates high-value metrics, heatmap tracking, and connects to Major Large Language Models (LLMs) to automatically write summaries for long channels/tickets.
 
-Enabled with:
+---
+
+## 📊 Analytics Configuration
+
+You can enable the analytics payload generation inside the `request`:
 
 ```ts
-analytics: { enabled: true }
+analytics: {
+  enabled: true,
+  includeHeatmap: true,
+  topWordsLimit: 100, // min 5
+  topMentionedLimit: 25, // min 3
+  responseWindowMinutes: 5, // min 1
+}
 ```
 
-Also CLI:
+**CLI Flags:** `--analytics`, `--analytics-heatmap`, `--top-words 100`, `--top-mentions 25`
 
-- `--analytics`
+### Generated Metrics Payload (`AnalyticsReport`)
 
-## Analytics Options
-
-- `includeHeatmap`
-- `topWordsLimit` (min 5)
-- `topMentionedLimit` (min 3)
-- `highlightCount` (min 3)
-- `responseWindowMinutes` (min 1)
-- `ai` block (for AI summaries)
-
-## Generated Metrics (`AnalyticsReport`)
+The Analytics Report payload generates the following data nodes:
 
 - `messageCountPerUser`
-- `attachmentStats`
-  - total attachments
-  - by content type
-  - total bytes
-- `reactionStats`
-  - total reaction entries
-  - messages with reactions
+- `attachmentStats` (total attachments, mapped by content type and bytes)
+- `reactionStats` (total emoji entries vs unique messages with reactions)
 - `wordFrequency`
 - `activityTimelineByHour` (UTC hour buckets)
 - `peakActivityHours`
 - `topMentionedUsers`
-- `responseTimeMetrics`
-  - sampled transitions
-  - average/median/p95 seconds
-- `conversationHeatmap` (optional)
-- `highlights` (notable message IDs + reasons)
+- `responseTimeMetrics` (average/median/p95 seconds)
+- `conversationHeatmap` (if enabled)
+- `highlights` (notable message IDs + computational reasoning)
 
-## AI Summary Flow
+---
 
-AI summary runs only when `analytics.ai.enabled = true`.
+## 🤖 AI Summary Flow
 
-Input includes:
+You can pipe the final parsed transcript into an AI Provider when `analytics.ai.enabled = true`.
 
-- transcript metadata
-- sampled last messages
-- optional analytics summary
-- prompt instructions/schema
+### Architecture
 
-Expected model output schema:
+The Exporter packages transcript metadata, a sampling of the last N messages, analytics summaries, and built-in prompting instructions. The expected model is rigorously instructed to return exact JSON matching the schema below:
 
 ```json
 {
@@ -61,42 +52,44 @@ Expected model output schema:
 }
 ```
 
-If provider returns invalid schema/non-JSON, exporter records warning.
+> [!WARNING]  
+> If the provider hallucinates, returns an invalid JSON schema, or fails to connect, the engine gracefully catches the error and records it inside `warnings[]` without crashing the export pipeline.
 
-## Built-in AI Providers
+---
 
-### `heuristic`
+## 🧠 Built-in AI Providers
 
-- Local deterministic summary
-- No network/API key required
+You must register your AI Logic Provider before executing the `exportChannel()` pipeline.
 
-### `openai`
+| Provider Constructor           | Description                                                                         | Default Model Called         |
+| ------------------------------ | ----------------------------------------------------------------------------------- | ---------------------------- |
+| **`heuristic`** _(Default)_    | Local deterministic summary. Doesn't use external network APIs.                     | N/A                          |
+| **`OpenAIProvider`**           | Official OpenAI API Wrapper.                                                        | `gpt-4o-mini`                |
+| **`GoogleGeminiProvider`**     | Google Gemini API Wrapper.                                                          | `gemini-1.5-pro`             |
+| **`AnthropicClaudeProvider`**  | Anthropic Messages API Wrapper.                                                     | `claude-3-5-sonnet-latest`   |
+| **`OpenAICompatibleProvider`** | Raw adapter for 3rd Party systems using `/chat/completions` (e.g., Groq, Together). | You supply the model string. |
 
-- Wrapper over OpenAI-compatible provider
-- Default model: `gpt-4.1-mini`
-
-### `openai-compatible`
-
-- Generic `/chat/completions` compatible provider
-- Configurable `baseUrl`, `model`, `id`
-
-### `gemini`
-
-- Google Gemini `generateContent` path
-- Default model: `gemini-1.5-pro`
-
-### `anthropic`
-
-- Anthropic Messages API
-- Default model: `claude-3-5-sonnet-latest`
-
-## Provider Registration
+### Registering Providers manually
 
 ```ts
-exporter.registerAIProvider(new OpenAIProvider({ apiKey: process.env.OPENAI_API_KEY! }));
+import { OpenAIProvider } from "@rayanmustafa/discord-chat-exporter";
+
+// Manually register via API key
+exporter.registerAIProvider(
+  new OpenAIProvider({ apiKey: process.env.OPENAI_API_KEY! }),
+);
 ```
 
-You can also provide your own provider implementing:
+### Automatic Registration
+
+> [!TIP]  
+> If your system shell contains standard environment variables (like `OPENAI_API_KEY`, `GEMINI_API_KEY`, `ANTHROPIC_API_KEY`), the `createExporter` engine automatically detects and registers these providers at runtime. You don't need to manually register them in TypeScript if the keys are present in `.env`.
+
+---
+
+## 🧩 Building Custom AI Adapters
+
+If you want to plug the logic into your own company's internal model infra, implement the `AIProvider` Interface:
 
 ```ts
 interface AIProvider {
@@ -104,7 +97,3 @@ interface AIProvider {
   summarize(ctx: AIProviderContext): Promise<AIResult>;
 }
 ```
-
-## Auto-Registration
-
-Popular providers auto-register if matching environment variables exist (see `docs/INSTALLATION.md`).

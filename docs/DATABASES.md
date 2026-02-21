@@ -1,99 +1,82 @@
 # Database Sinks
 
-Database sink is configured under `output.database`.
+The Database sink feature (configured under `output.database`) allows you to automatically pipe the generated JSON payloads and analytical metrics straight into your database of choice upon completion of the export.
 
-## Built-in Drivers
+---
 
-- `sqlite`
-- `postgres` (aliases: `pg`, `postgresql`)
-- `mysql`
-- `mongodb` (alias: `mongo`)
-- `mongoose`
+## 🗄️ Built-in Drivers
 
-If `output.database.enabled = true`, sink runs after rendering.
+To use a built-in driver, set `output.database.enabled = true` and ensure the listed optional dependency is installed via NPM.
 
-## Shared Payload Stored
+| Driver ID      | Aliases            | Required Package |
+| -------------- | ------------------ | ---------------- |
+| **`sqlite`**   | -                  | `better-sqlite3` |
+| **`postgres`** | `pg`, `postgresql` | `pg`             |
+| **`mysql`**    | -                  | `mysql2`         |
+| **`mongodb`**  | `mongo`            | `mongodb`        |
+| **`mongoose`** | -                  | `mongoose`       |
 
-All drivers store the same semantic payload:
+---
 
-- export timestamp
-- channel/guild IDs
-- formats
-- full transcript
-- analytics report (if present)
-- AI result (if present)
-- export stats
-- artifact metadata
-- original request payload
+## 📦 Shared Payload Shape
 
-## Driver-Specific Requirements
+Regardless of the driver used, the engine stores a uniform, semantic JSON payload representing the entire transaction.
+
+| Field               | Description                                              |
+| ------------------- | -------------------------------------------------------- |
+| `timestamp`         | Export execution time.                                   |
+| `channel/guild IDs` | The IDs targeted for the export.                         |
+| `formats`           | Array of formats generated.                              |
+| `transcript`        | The massive, full structured conversation payload.       |
+| `analyticsReport`   | The generated analytic metrics (if enabled).             |
+| `aiResult`          | The summary/highlight blocks from AI (if enabled).       |
+| `stats`             | General execution numbers (message counts, fetch times). |
+| `metadata`          | Artifact metadata and sizes.                             |
+| `requestPayload`    | The original options fed into the exporter.              |
+
+---
+
+## ⚙️ Driver-Specific Requirements
+
+Configure the connection logic inside `output.database`.
 
 ### SQLite
 
-- driver: `sqlite`
-- required: `sqlitePath`
-- optional: `table` (default `exports_log`)
-- optional dependency: `better-sqlite3`
+- **driver:** `sqlite`
+- **required:** `sqlitePath` (absolute or relative file path to the `.sqlite` file).
+- **optional:** `table` (defaults to `exports_log`).
 
-### PostgreSQL
+### PostgreSQL / MySQL
 
-- driver: `postgres`
-- either:
-  - `connectionString`
-  - or host-based config (`host`, `port`, `user`, `password`, `databaseName`)
-- optional: `table` (default `exports_log`)
-- optional: `tls`
-- optional dependency: `pg`
+- **driver:** `postgres` OR `mysql`
+- **Connection Strategy:** Provide either a unified `connectionString` (e.g., `postgres://user:pass@host/...`) **OR** separate fields (`host`, `port`, `user`, `password`, `databaseName`).
+- **optional:** `table` (defaults to `exports_log`), `tls` (boolean flag).
 
-### MySQL
+### MongoDB / Mongoose
 
-- driver: `mysql`
-- either:
-  - `connectionString`
-  - or host-based config (`host`, `port`, `user`, `password`, `databaseName`)
-- optional: `table` (default `exports_log`)
-- optional: `tls`
-- optional dependency: `mysql2`
+- **driver:** `mongodb` OR `mongoose`
+- **required:** `connectionString` (e.g., `mongodb://localhost:27017/...`).
+- **optional:** `databaseName`, `collection` (falls back to `table` or `exports_log`), `tls` (boolean flag).
 
-### MongoDB
+> [!TIP]  
+> Use the `options: Record<string, unknown>` field inside `output.database` to pass custom initialization parameters directly into the underlying DB client connection logic.
 
-- driver: `mongodb`
-- required: `connectionString`
-- optional: `databaseName`
-- optional: `collection` (fallback uses `table` then `exports_log`)
-- optional: `tls`
-- optional dependency: `mongodb`
+---
 
-### Mongoose
+## 🛡️ Security & Validation Notes
 
-- driver: `mongoose`
-- required: `connectionString`
-- optional: `databaseName`
-- optional: `collection` (fallback uses `table` then `exports_log`)
-- optional: `tls`
-- optional dependency: `mongoose`
+> [!WARNING]
+>
+> - **Never hardcode credentials** directly in your source files. Use Environment variables (e.g., `process.env.DB_PASS`) or secret-injection systems.
+> - **Verification:** For SQL namespaces, only alphanumeric/underscore identifiers are valid. For MongoDB, allowed letters include numbers, `.`, `_`, and `-`.
 
-## Additional Driver Options
+---
 
-- `options?: Record<string, unknown>`
-  - merged into underlying DB client options for SQL/Mongo drivers
+## 🧩 Building Custom Database Adapters
 
-## Result Shape
+If the built-in drivers don't support your stack (e.g., Firebase, Supabase, Redis), you can safely inject a custom sink using the `registerDatabaseAdapter` method.
 
-`delivery.database` returns:
-
-```ts
-{
-  driver: string;
-  exportId: string | number;
-  location: string;
-  metadata?: Record<string, unknown>;
-}
-```
-
-## Custom Database Adapters
-
-Use `registerDatabaseAdapter` for any non-built-in database:
+**Example: Piping into Google Firestore**
 
 ```ts
 import { createExporter } from "@rayanmustafa/discord-chat-exporter";
@@ -103,7 +86,8 @@ const exporter = createExporter();
 exporter.registerDatabaseAdapter({
   id: "firestore",
   async persist(ctx) {
-    // persist ctx data to your DB
+    // Write ctx.transcript, ctx.stats, etc to your DB
+
     return {
       driver: "firestore",
       exportId: "abc123",
@@ -113,11 +97,4 @@ exporter.registerDatabaseAdapter({
 });
 ```
 
-If an adapter ID matches configured driver, adapter is used instead of built-in handlers.
-
-## Security Notes
-
-- Do not hardcode credentials in source control.
-- Prefer environment variables or secret manager injection.
-- For SQL table/database names, only alphanumeric/underscore identifiers are accepted.
-- For Mongo collection names, allowed chars: letters, numbers, `.`, `_`, `-`.
+_(If your adapter's `id` perfectly matches the configured `driver` ID in the request, your adapter overrides the built-in system entirely)._

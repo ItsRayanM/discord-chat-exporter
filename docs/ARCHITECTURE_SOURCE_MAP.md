@@ -1,90 +1,84 @@
 # Architecture and Source Map
 
-## End-to-End Flow
+The `@rayanmustafa/discord-chat-exporter` library relies on a highly scalable, Domain-Driven internal structure. This safely divides the pipeline (fetching, parsing, and rendering) from the Presentation (CLI formatting, external APIs).
 
-1. Validate request (`features/export/application/validate-request.ts`)
-2. Resolve output plan (`features/export/infrastructure/output-plan.ts`)
-3. Collect messages/channels/threads (`modules/discord/collector.ts`)
-4. Normalize raw Discord payloads (`modules/transcript/normalize.ts`)
-5. Merge recorder events if configured
-6. Apply incremental state cutoff
-7. Apply filter DSL + predicate (`modules/transcript/filter-engine.ts`)
-8. Process attachments (`modules/transcript/attachments.ts`)
-9. Generate analytics (`modules/analytics` → `analytics/report.ts`)
-10. Generate AI summary (`modules/ai` → `ai/providers.ts` provider selected)
-11. Render requested formats (`modules/rendering` → `renderers/*.ts`)
-12. Optional ZIP/PDF post-processing
-13. Save incremental checkpoint
-14. Deliver outputs (`modules/delivery` → Discord, DB, storage, webhooks)
-15. Return `ExportResult`
+---
 
-## Core Concepts
+## 🏎️ End-to-End Pipeline Flow
 
-- Canonical data model: `TranscriptDocument` in `src/types/` (barrel `src/types.ts`)
-- Renderer plugin registry: `src/plugins/registry.ts`
-- Database adapter extension point: `registerDatabaseAdapter`
-- AI provider extension point: `registerAIProvider`
+When `exportChannel(request)` is invoked, the engine processes data linearly across the architecture:
 
-## Source Layout
+1. **Validation** (`modules/export/application/validate-request.ts`)
+2. **Output Plan Resolution** (`modules/export/infrastructure/output-plan.ts`)
+3. **Data Collection** (`modules/discord/collector.ts`)
+4. **Data Normalization** (`modules/transcript/normalize.ts`)
+5. Merge Detached Recorder Events (if configured)
+6. Apply Incremental Checkpoint Cutoffs
+7. **Filter Engine & Predicates** (`modules/transcript/filter-engine.ts`)
+8. **Attachment Processing** (`modules/transcript/attachments.ts`)
+9. **Analytics Generation** (`modules/analytics` → `report.ts`)
+10. **AI Summary Generation** (`modules/ai` → `providers.ts`)
+11. **Format Rendering** (`modules/rendering` → `renderers/*.ts`)
+12. ZIP / PDF Compilation processing
+13. Save Incremental Checkpoints to disk
+14. **Final Delivery** (`modules/delivery` → Discord, DB, Storage, Webhooks)
+15. Return unified `ExportResult`
 
-### Entry points
+---
 
-- `src/index.ts`: public library exports
-- `src/types.ts`: re-exports from `src/types/index.ts` (domain types)
-- `src/cli.ts`: CLI entry (bin `dcexport`)
+## 📂 Source Layout (`src/`)
 
-### Modules (`src/modules/`)
+### 🚪 Entry Points
 
-Feature-based modules with a single barrel per domain:
+| File           | Role                                                               |
+| -------------- | ------------------------------------------------------------------ |
+| `src/index.ts` | The primary public Node.js/TypeScript library export.              |
+| `src/types.ts` | Re-exports all heavily-typed structures from `src/types/index.ts`. |
+| `src/cli.ts`   | The execution binary for the `npx dcexport` Commander CLI parsing. |
 
-- **discord**: `discord-api.ts`, `collector.ts` — Discord REST client and message collection
-- **transcript**: `normalize.ts`, `filter-engine.ts`, `attachments.ts`, `hash.ts`, `redaction.ts`, `delta.ts` — transcript building and in-memory transforms
-- **rendering**: re-exports from `renderers/` (json, text, markdown, csv, xml, html, pdf, sqlite, docx, zip, analytics)
-- **delivery**: re-exports from `core/` delivery (discord, database, storage, webhook)
-- **analytics**: re-exports from `analytics/report.ts`
-- **ai**: re-exports from `ai/providers.ts`
-- **scheduler**: re-exports from `scheduler/` (store, engine, runner)
-- **recorder**: re-exports from `recorder/live-recorder.ts`
-- **integrations**: re-exports from `integrations/` (ticket-close, ticket-close-advanced)
-- **cli**: schemas, build-request, loaders, providers (CLI parsing and request building)
-- **export**: re-exports from `core/exporter.ts` (createExporter, DiscordChatExporter)
+### 🧩 System Modules (`src/modules/*`)
 
-### Types (`src/types/`)
+Feature-based isolation with a single exported barrel per domain.
 
-Domain types split by concern; barrel `src/types/index.ts` re-exports all. Top-level `src/types.ts` re-exports from `types/index.js` for backward-compatible imports.
+| Module Directory   | Core Responsibility                                                             |
+| ------------------ | ------------------------------------------------------------------------------- |
+| **`discord`**      | Discord REST client (`discord-api.ts`) and recursive History Collection.        |
+| **`transcript`**   | Engine logic for payload mapping, hashing, redaction, and delta merges.         |
+| **`rendering`**    | Source files for string-building JSON, PDF, Markdown, XML, and HTML DOM arrays. |
+| **`delivery`**     | Export upload handlers (Databases, Cloud Storage, Discord channel posts).       |
+| **`export`**       | The master orchestration pipeline for `createExporter`.                         |
+| **`analytics`**    | Statistical analysis reports mapped from message frequency.                     |
+| **`ai`**           | Abstracted LLM execution and API wrappers.                                      |
+| **`scheduler`**    | Schedulers, runners, and storage management for the daemon.                     |
+| **`recorder`**     | Websocket NDJSON recorder interfaces.                                           |
+| **`integrations`** | Pre-built interaction templates (e.g., ticket-closing).                         |
+| **`cli`**          | Zod validation constraints, commander scripts, and arg payload loading.         |
 
-- `formats.ts`, `transcript.ts`, `output.ts`, `redaction.ts`, `delta.ts`, `compliance.ts`, `monitoring.ts`, `filters.ts`, `stats.ts`, `render.ts`, `analytics.ts`, `ai.ts`, `recorder.ts`, `request.ts`, `result.ts`, `integrations.ts`
-- `optional-deps.d.ts`: ambient declarations for optional dependencies
+### 🛠️ Shared Libraries (`src/shared/*`)
 
-### Shared (`src/shared/`)
+Internal tooling utilized globally across the application.
 
-- `errors/`: DiscordExporterError, OptionalDependencyError, DiscordApiError, ValidationError
-- `optional-require.ts`: `requireOptional()` for optional CommonJS deps
-- `json/safe-json.ts`: safeJsonParse, tryJsonParse, safeJsonStringify
-- `async/concurrency.ts`: createConcurrencyLimiter, runWithConcurrencyLimit
-- `utils/snowflake.ts`: compareSnowflakes, getMaxSnowflakeId
+| Lib Path  | Features                                                                         |
+| --------- | -------------------------------------------------------------------------------- |
+| `errors/` | Custom prototypes: `DiscordExporterError`, `ValidationError`, `DiscordApiError`. |
+| `async/`  | Specialized `p-limit` mechanic (`concurrency.ts`) for safe multi-threading.      |
+| `json/`   | Error-bound `safeJsonParse` algorithms.                                          |
+| `utils/`  | Snowflake mathematical sorters and BigInt identifiers.                           |
 
-### Core
+### 🗂️ Type Definitions (`src/types/*`)
 
-- `core/exporter.ts`: orchestration pipeline (only file in core)
+The library emphasizes extreme strict-typing for enterprise integrity.
 
-### Modules
+All operational structs (e.g., `ExportRequest`, `AnalyticsReport`, `TranscriptDocument`, `RecorderOptions`) are separated into unique scope files (`formats.ts`, `result.ts`, `ai.ts`, etc.) and seamlessly aggregated through `src/types/index.ts`.
 
-- `modules/export/`: validate-request, output-plan, batch-export, monitoring; re-exports createExporter/DiscordChatExporter from core
-- `modules/delivery/`: discord-delivery, database-delivery, storage-delivery, webhook-delivery
-- `modules/rendering/`: format implementations (json, text, markdown, csv, xml, html, pdf, sqlite, docx, zip, analytics) and HTML infrastructure
-- `modules/compliance/`: generateComplianceArtifacts (manifest + signing)
-- `modules/scheduler/`: store, engine, runner
-- `modules/recorder/`: live-recorder
-- `modules/integrations/`: ticket-close, ticket-close-advanced
-- `modules/cli/`: schemas, build-request, loaders, providers
+---
 
-### Other
+## 🏭 Core Interfaces
 
-- `src/contracts/public-types-contract.ts`: compile-time check for public type exports
-- `src/plugins/registry.ts`: RendererRegistry
-- `src/shared/errors/index.ts`: DiscordExporterError, ValidationError, OptionalDependencyError, DiscordApiError
+- **Canonical Data Schema:** `TranscriptDocument` defines exactly what a recorded channel looks like.
+- **Renderer Plugin Registry:** Located in `src/plugins/registry.ts`.
+- **Database Architecture Extension:** Registered via `registerDatabaseAdapter()`.
+- **AI Analytics Extension:** Registered via `registerAIProvider()`.
 
-## Dist Output
-
-Compiled artifacts are emitted under `dist/` using TypeScript NodeNext config.
+> [!NOTE]  
+> All compiled artifacts publish into the base `./dist/` folder mapped strictly to standard **TypeScript NodeNext** configurations.

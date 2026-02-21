@@ -1,176 +1,95 @@
 # Formats and Rendering
 
-## Supported Output Formats
+This section describes every export format mathematically parsed by `@rayanmustafa/discord-chat-exporter` alongside the UI UX features you can trigger for visual artifacts (like HTML).
 
-- `json-full`
-- `json-clean`
-- `txt`
-- `md`
-- `csv`
-- `html-single`
-- `html-bundle`
-- `pdf`
-- `xml`
-- `sqlite`
-- `docx`
-- `zip`
-- `analytics-json`
+---
 
-## Format Details
+## 🎨 Supported Formats Overview
 
-### `json-full`
+| Format ID        | Extension         | Output Style | Description                                                                   |
+| ---------------- | ----------------- | ------------ | ----------------------------------------------------------------------------- |
+| `json-full`      | `.json`           | Raw Data     | Complete `TranscriptDocument` object preserved exactly as extracted.          |
+| `json-clean`     | `.clean.json`     | Raw Data     | Stripped-down version focusing purely on message text and user IDs.           |
+| `txt`            | `.txt`            | Document     | Readable line-based transcript (includes attachments/reaction tallies).       |
+| `md`             | `.md`             | Document     | Standard Markdown transcript with headers and a Table of Contents.            |
+| `csv`            | `.csv`            | Document     | Flat tables with single rows per message parsed.                              |
+| `xml`            | `.xml`            | Document     | Structured hierarchical XML via `fast-xml-parser`.                            |
+| `html-single`    | `.html`           | UI View      | Self-contained, zero-dependency HTML file modeling the Discord app.           |
+| `html-bundle`    | `-site/`          | UI View      | A folder output (`index.html`, `app.js`, `styles.css`) for deployment.        |
+| `pdf`            | `.pdf`            | UI View      | High-fidelity PDF snapshot of the HTML view. Requires `playwright`.           |
+| `sqlite`         | `.sqlite`         | Database     | Dumps into a local SQLite file instantly. Requires `better-sqlite3`.          |
+| `docx`           | `.docx`           | Document     | MS Word formatted document. Requires `docx`.                                  |
+| `zip`            | `.zip`            | Archive      | Bundles formats + media files. AES-256 enabled with `archiver-zip-encrypted`. |
+| `analytics-json` | `.analytics.json` | Raw Data     | Standalone file containing metrics and AI heatmaps.                           |
 
-- Extension: `.json`
-- Complete `TranscriptDocument` serialized as-is.
+---
 
-### `json-clean`
+## 🖥️ HTML Rendering Details
 
-- Extension: `.clean.json`
-- Simplified view:
-  - channel + export timestamp
-  - message count
-  - simplified message list
+The HTML Views (`html-single` & `html-bundle`) are built to closely mimic the actual Discord Client visually.
 
-### `txt`
+### Discord Layout Control
 
-- Extension: `.txt`
-- Readable line-based transcript with:
-  - watermark/read-only/chunk headers (if enabled)
-  - attachments, embed count, reaction count
+If the channel belongs to a guild, the exporter fetches the full guild and channel index, generating a **Full Discord UI**.
+You can control this layout via `render.html.panels` in the API, or via CLI flags:
 
-### `md`
+| Panel Focus      | CLI Flag to Hide         | Description                                       |
+| ---------------- | ------------------------ | ------------------------------------------------- |
+| **Server List**  | `--html-no-server-list`  | Hides the far-left server icon column.            |
+| **Channel List** | `--html-no-channel-list` | Hides the list of channels and categories.        |
+| **Members List** | `--html-no-members`      | Hides the active participants panel on the right. |
 
-- Extension: `.md`
-- Markdown transcript with summary header and optional TOC.
+### Visual Settings & Themes
 
-### `csv`
+Configure output aesthetics using `request.render`:
 
-- Extension: `.csv`
-- Flat tabular rows per message.
+| Option                   | Values / Types                                                                             | Description                                                         |
+| ------------------------ | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------- |
+| `theme`                  | `discord-dark-like` (default), `discord-light-like`, `high-contrast`, `minimal`, `compact` | Swaps the CSS injection palette.                                    |
+| `timezone`               | e.g. `UTC`, `America/New_York`                                                             | Sets native times rendering.                                        |
+| `timestampFormat`        | `12h`, `24h`                                                                               | Sets clock rendering format.                                        |
+| `watermark`              | `string`                                                                                   | Applies a diagonal text watermark overlay across HTML exports.      |
+| `readOnly`               | `boolean`                                                                                  | Locks interaction visuals like chatboxes.                           |
+| `rtl`                    | `boolean`                                                                                  | Flips standard Right-to-Left writing layout.                        |
+| `html.searchable`        | `boolean`                                                                                  | Embeds a lightweight client-side search indexing system.            |
+| `html.accessibilityMode` | `boolean`                                                                                  | Upgrades contrast ratios and injects ARIA roles for screen readers. |
 
-### `html-single`
+> [!NOTE]  
+> The internal HTML rendering engine parses all native Discord markdown tags into actual DOM nodes. This includes mentions (`<@id>`), roles (`<@&id>`), channels (`<#id>`), timestamps (`<t:time>`), and Custom Emotes (`<:name:id>`).
 
-- Extension: `.html`
-- Self-contained HTML file with inlined app script and styles.
-- Supports search (unless disabled), TOC, warnings/limitations panel, watermark, read-only banner, chunk badge.
+---
 
-### `html-bundle`
+## 📎 Attachments Processing
 
-- Directory: `<basename>-site/`
-- Artifacts:
-  - `index.html`
-  - `app.js`
-  - `styles.css`
-  - `data.json`
+Control how external media is mapped in your artifacts by supplying `request.attachments.mode`:
 
-### `pdf`
+| Mode                        | Behavior                                                                                                                        |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `external-link` _(default)_ | Media points directly to Discord CDN URLs. (Will break if Discord invalidates the URL).                                         |
+| `local-download`            | Engine automatically pulls the file into `./attachments/` and updates HTML paths to point locally.                              |
+| `both`                      | Combination of the two. Maintains a local copy but references the CDN as a fallback.                                            |
+| `base64-inline`             | Downloads the file and converts smaller items directly into Base64 URI strings embedded natively into the database/HTML string. |
 
-- Extension: `.pdf`
-- Generated from HTML using Playwright Chromium.
-- Requires optional package `playwright`.
+**Advanced Attachment Limits:**
 
-### `xml`
+- `maxBase64Bytes` (default: 1.5MB) controls what files are skipped during inline processing.
+- `downloadConcurrency` (default: 4) limits parallel network connections hitting Discord CDN.
 
-- Extension: `.xml`
-- Structured XML via `fast-xml-parser`.
+---
 
-### `sqlite` (renderer format)
+## ✂️ Split & Chunking Policies
 
-- Extension: `.sqlite`
-- Local SQLite file output with tables:
-  - `meta`
-  - `participants`
-  - `messages`
-  - `attachments`
-- Requires `better-sqlite3`.
+To prevent massive servers from generating Multi-Gigabyte JSON or un-openable HTML pages, you can apply rules in `render.splitPolicy`:
 
-### `docx`
+- `maxMessagesPerChunk` (Count)
+- `maxBytesPerChunk` (Size constraint)
 
-- Extension: `.docx`
-- Word document transcript.
-- Requires `docx`.
+When a limit is breached, exports generate suffix variants (e.g., `<basename>.part-001.html`).
 
-### `zip`
+## 🛑 Incremental Checkpoints (Delta mode)
 
-- Extension: `.zip`
-- ZIP archive containing generated artifacts and downloaded attachments.
-- Optional AES-256 mode using `archiver-zip-encrypted` when configured.
+By setting `output.incremental.enabled = true`, the export avoids redownloading massive history:
 
-### `analytics-json`
-
-- Extension: `.analytics.json`
-- Serialized analytics report output.
-
-## Render Options
-
-`request.render` supports:
-
-- `timezone`
-- `timestampFormat`: `12h | 24h`
-- `theme`: `discord-dark-like | discord-light-like | high-contrast | minimal | compact`
-- `html.mode`: `single-file | bundle | both` (currently render selection is by formats list)
-- `html.searchable`
-- `html.accessibilityMode`
-- `watermark`
-- `readOnly`
-- `rtl`
-- `customCss`
-- `showUserIds` (reserved type field)
-- `avatarSize`
-- `includeTableOfContents`
-- `splitPolicy.maxMessagesPerChunk`
-- `splitPolicy.maxBytesPerChunk`
-
-## Discord Markdown/Content Rendering Notes
-
-HTML renderer includes content transforms for:
-
-- user mention tags `<@...>`
-- role mention tags `<@&...>`
-- channel mention tags `<#...>`
-- timestamp tags `<t:...>`
-- custom emojis `<:name:id>` and `<a:name:id>`
-
-Markdown parsing uses `markdown-it` with linkify and code block support.
-
-## Attachments Processing
-
-Attachment behavior is controlled via `request.attachments`:
-
-- `include` default: `true`
-- `mode`:
-  - `external-link`
-  - `local-download`
-  - `both`
-  - `base64-inline`
-- `outputFolder` default: `attachments`
-- `maxBase64Bytes` default: `1_500_000`
-- `downloadConcurrency` default: `4`
-- `retry` default: `2`
-
-Manifest entries record status:
-
-- `linked`
-- `downloaded`
-- `inlined`
-- `failed`
-
-## Split/Chunk Behavior
-
-When `render.splitPolicy` is set:
-
-- transcript is split by message count and/or estimated JSON bytes
-- each chunk gets `transcript.meta.chunk = { index, total }`
-- output basenames become:
-  - single: `<basename>`
-  - chunked: `<basename>.part-001`, `<basename>.part-002`, etc.
-
-## Incremental Export State
-
-When `output.incremental.enabled = true`:
-
-- state file is loaded/saved with `lastMessageId`
-- older/equal messages are skipped
-- default state path:
-  - `<outputDir>/.dcexport/state-<channelId>.json`
-  - unless overridden by `output.incremental.stateFile`
+1. Exporter checks `./.dcexport/state-<channelId>.json` for the last processed `lastMessageId`.
+2. Engine skips all messages older than the checkpoint ID.
+3. Automatically writes a new checkpoint signature once finished.

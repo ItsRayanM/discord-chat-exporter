@@ -1,4 +1,4 @@
-﻿# Full Type Definitions (`src/types.ts`)
+# Full Type Definitions (`src/types.ts`)
 
 This is a full reference copy of the current exported type definitions.
 Source of truth remains `src/types.ts`.
@@ -108,10 +108,39 @@ export interface OutputOptions {
 
 export type OutputTargetMode = "filesystem" | "discord-channel" | "both";
 
+/**
+ * Discord embed payload (subset of Discord API embed object).
+ * @see https://discord.com/developers/docs/resources/channel#embed-object
+ */
+export interface DiscordEmbedData {
+  title?: string;
+  description?: string;
+  url?: string;
+  color?: number;
+  timestamp?: string;
+  footer?: { text: string; icon_url?: string };
+  image?: { url: string };
+  thumbnail?: { url: string };
+  author?: { name: string; url?: string; icon_url?: string };
+  fields?: Array<{ name: string; value: string; inline?: boolean }>;
+}
+
 export interface OutputDiscordOptions {
   channelId: string;
   token?: string;
   content?: string;
+  /** If true, append file list to message; or use {{files}} in content. */
+  includeFileList?: boolean;
+  /** Function to build message content; result can contain {{files}}. */
+  getContent?: (ctx: DiscordDeliveryContext) => string | Promise<string>;
+  /** Optional single embed. */
+  embed?: DiscordEmbedData;
+  /** Function to build a single embed. */
+  getEmbed?: (ctx: DiscordDeliveryContext) => DiscordEmbedData | Promise<DiscordEmbedData>;
+  /** Optional embeds (max 10 per message). */
+  embeds?: DiscordEmbedData[];
+  /** Function to build embeds (max 10). */
+  getEmbeds?: (ctx: DiscordDeliveryContext) => DiscordEmbedData[] | Promise<DiscordEmbedData[]>;
 }
 
 export interface OutputDatabaseOptions {
@@ -244,6 +273,15 @@ export interface DiscordDeliveryResult {
   channelId: string;
   messageIds: string[];
   uploadedFiles: number;
+}
+
+/** Context passed to output.discord.getContent / getEmbed / getEmbeds. */
+export interface DiscordDeliveryContext {
+  artifacts: RenderArtifact[];
+  channelId: string;
+  fileListText: string;
+  batchIndex: number;
+  batchCount: number;
 }
 
 export interface DatabaseDeliveryResult {

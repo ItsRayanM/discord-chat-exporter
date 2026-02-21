@@ -1,69 +1,83 @@
 # API Reference
 
-Public exports come from `src/index.ts`.
+This document covers the primary TypeScript/Node.js interfaces exported from `src/index.ts`.
 
-## Main Exports
+---
 
-- `createExporter(config?)`
-- `DiscordChatExporter`
-- `createTicketCloseHandler(options)`
-- `startLiveRecorder(options)`
+## 📦 Main Exports
 
-AI classes:
+### Core Classes & Methods
 
-- `HeuristicAIProvider`
-- `OpenAIProvider`
-- `OpenAICompatibleProvider`
-- `GoogleGeminiProvider`
-- `AnthropicClaudeProvider`
+| Export Name                             | Description                                                                |
+| --------------------------------------- | -------------------------------------------------------------------------- |
+| **`createExporter(config?)`**           | Factory initialization of the core pipeline engine.                        |
+| **`DiscordChatExporter`**               | The underlying concrete exporter class for manual instantiation.           |
+| **`createTicketCloseHandler(options)`** | Helper pipeline that safely stops, exports, and cleans up Discord tickets. |
+| **`startLiveRecorder(options)`**        | Spawns the NDJSON `discord.js` listener.                                   |
 
-Types:
+### AI Providers
 
-- `ExportRequest`, `ExportResult`, `OutputFormat`
-- `FilterGroup`, `FilterCondition`, `MessagePredicate`
-- `RendererPlugin`, `RenderContext`, `RenderArtifact`
-- `AIProvider`, `AIProviderContext`, `AIResult`
-- `DatabaseDeliveryAdapter`, `DatabaseDeliveryContext`, `OutputDatabaseOptions`
-- `TicketCloseHandlerOptions`, `RecorderStartOptions`, `LiveRecorderHandle`
+| Export Name                    | Platform Targeted                                                     |
+| ------------------------------ | --------------------------------------------------------------------- |
+| **`HeuristicAIProvider`**      | Native basic matching based on text analysis.                         |
+| **`OpenAIProvider`**           | Interface for standard OpenAI models.                                 |
+| **`GoogleGeminiProvider`**     | Interface for standard Google Gemini models.                          |
+| **`AnthropicClaudeProvider`**  | Interface for standard Claude 3+ APIs.                                |
+| **`OpenAICompatibleProvider`** | Adapter for OpenAI-format APIs like Groq, Mistral, Together, and xAI. |
 
-## `DiscordChatExporter`
+### Core Types
+
+| Category         | Types List                                                                    |
+| ---------------- | ----------------------------------------------------------------------------- |
+| **Pipelines**    | `ExportRequest`, `ExportResult`, `OutputFormat`                               |
+| **Filtering**    | `FilterGroup`, `FilterCondition`, `MessagePredicate`                          |
+| **Rendering**    | `RendererPlugin`, `RenderContext`, `RenderArtifact`                           |
+| **Intelligence** | `AIProvider`, `AIProviderContext`, `AIResult`                                 |
+| **Databases**    | `DatabaseDeliveryAdapter`, `DatabaseDeliveryContext`, `OutputDatabaseOptions` |
+| **Events**       | `TicketCloseHandlerOptions`, `RecorderStartOptions`, `LiveRecorderHandle`     |
+
+---
+
+## 🛠 `DiscordChatExporter` Class Methods
 
 ### `registerRenderer(plugin: RendererPlugin): void`
 
-Registers custom renderer keyed by `plugin.format`.
+Registers a custom renderer keyed by `plugin.format`.
 
 ### `registerAIProvider(provider: AIProvider): void`
 
-Registers/overrides AI provider by `provider.id`.
+Registers or overrides the default AI provider referenced by `provider.id`.
 
 ### `registerDatabaseAdapter(adapter: DatabaseDeliveryAdapter): void`
 
-Registers custom database sink adapter by normalized `adapter.id`.
+Allows injection of a custom database sink adapter using `adapter.id`.
 
 ### `exportChannel(request: ExportRequest): Promise<ExportResult>`
 
-Full export pipeline:
+Executes the full export pipeline.
 
-1. validate request
-2. resolve output plan
-3. collect messages + threads
-4. normalize into transcript
-5. merge recorder events (optional)
-6. apply incremental cutoff (optional)
-7. apply filter engine + predicate
-8. process attachments
-9. generate analytics report (optional)
-10. generate AI summary (optional)
-11. render formats/chunks
-12. render ZIP/PDF (if requested)
-13. save incremental state (optional)
-14. deliver to Discord/database targets (if enabled)
+**Under the hood Execution Steps:**
 
-### `startLiveRecorder(options: RecorderStartOptions): Promise<LiveRecorderHandle>`
+1. Validate Request definitions.
+2. Resolve the Target Output Plan.
+3. Collect messages & threads dynamically.
+4. Normalize payloads into a standard transcript schema.
+5. Merge live recorder events (if applicable).
+6. Apply incremental checkpoints/cutoffs.
+7. Execute filter engine limits.
+8. Process external attachments.
+9. Generate the Analytics report.
+10. Run AI summarization prompts.
+11. Render chunks & formats.
+12. Zip / Compile archives and PDFs.
+13. Save standard state tokens back to disk.
+14. Deliver final artifacts to Cloud Storage, Discord channel, or Databases.
 
-Starts `discord.js` live recorder writing NDJSON events.
+---
 
-## `ExportRequest` Overview
+## 🧩 Shared Interface Definitions
+
+### `ExportRequest`
 
 ```ts
 interface ExportRequest {
@@ -83,7 +97,7 @@ interface ExportRequest {
 }
 ```
 
-## `OutputOptions` Overview
+### `OutputOptions`
 
 ```ts
 interface OutputOptions {
@@ -92,14 +106,26 @@ interface OutputOptions {
   compress?: boolean;
   target?: "filesystem" | "discord-channel" | "both";
   retainFiles?: boolean;
+
   discord?: {
     channelId: string;
     token?: string;
     content?: string;
+    includeFileList?: boolean;
+    getContent?: (ctx: DiscordDeliveryContext) => string | Promise<string>;
+    embed?: DiscordEmbedData;
+    getEmbed?: (
+      ctx: DiscordDeliveryContext,
+    ) => DiscordEmbedData | Promise<DiscordEmbedData>;
+    embeds?: DiscordEmbedData[];
+    getEmbeds?: (
+      ctx: DiscordDeliveryContext,
+    ) => DiscordEmbedData[] | Promise<DiscordEmbedData[]>;
   };
+
   database?: {
     enabled?: boolean;
-    driver?: string;
+    driver?: "sqlite" | "postgres" | "mysql" | "mongodb" | "mongoose" | string;
     sqlitePath?: string;
     connectionString?: string;
     host?: string;
@@ -112,11 +138,13 @@ interface OutputOptions {
     tls?: boolean;
     options?: Record<string, unknown>;
   };
+
   encryption?: {
     enabled?: boolean;
     password?: string;
     method?: "zip-aes256";
   };
+
   incremental?: {
     enabled?: boolean;
     stateFile?: string;
@@ -124,7 +152,7 @@ interface OutputOptions {
 }
 ```
 
-## `ExportResult` Overview
+### `ExportResult`
 
 ```ts
 interface ExportResult {
@@ -134,11 +162,13 @@ interface ExportResult {
   stats: ExportStats;
   analyticsReport?: AnalyticsReport;
   aiResult?: AIResult;
+
   checkpoints?: {
     incrementalStateFile?: string;
     lastMessageId?: string;
     chunkCount: number;
   };
+
   delivery?: {
     discord?: {
       channelId: string;
@@ -155,7 +185,13 @@ interface ExportResult {
 }
 ```
 
-## Custom Renderer Plugin
+---
+
+## 🛠 Extending Architectures
+
+### Custom Renderer Plugin Integration
+
+You can inject any custom format output by supplying a valid mapping pipeline template:
 
 ```ts
 interface RendererPlugin {
@@ -166,18 +202,17 @@ interface RendererPlugin {
 }
 ```
 
-## Custom Database Adapter
+### Custom Database Adapter
+
+Provide a way to sink unstructured JSON metrics right into your cloud layer:
 
 ```ts
 interface DatabaseDeliveryAdapter {
   id: string; // e.g. "firestore"
   persist(ctx: DatabaseDeliveryContext): Promise<DatabaseDeliveryResult>;
 }
-```
 
-Example:
-
-```ts
+// Concrete Initialization snippet
 exporter.registerDatabaseAdapter({
   id: "firestore",
   async persist(ctx) {

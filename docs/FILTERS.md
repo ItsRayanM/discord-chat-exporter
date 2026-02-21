@@ -1,15 +1,21 @@
 # Filters Reference
 
-Filtering is applied to normalized transcript messages before rendering.
+The Filtering Engine in `@rayanmustafa/discord-chat-exporter` operates strictly on normalized `TranscriptMessage` payloads before any formats or analytical summaries are rendered.
 
-Pipeline order:
+---
 
-1. `filters` (group/AST)
-2. `predicate` callback (if provided)
+## ⚙️ Operation Pipeline
 
-Only messages passing both are exported.
+Filtering is executed in two stages. A message **must pass both** to survive the export:
 
-## Structure
+1. **DSL Filter Engine:** An Abstract Syntax Tree built of nested `AND/OR` groups and declarative `FilterCondition` objects.
+2. **Predicate Callback:** An optional javascript function you supply for any custom ad-hoc validation.
+
+---
+
+## 🌳 Filter Groups (AST)
+
+The `FilterGroup` defines the branching logic. Groups can infinitely nest inside each other.
 
 ```ts
 interface FilterGroup {
@@ -18,62 +24,53 @@ interface FilterGroup {
 }
 ```
 
-Nested groups are fully supported.
+---
 
-## Conditions
+## 🔍 Defined Conditions
 
-### Author/User Conditions
+A `FilterCondition` requires a `kind` matching the specific operation you want, followed by properties unique to that exact check.
 
-- `authorId`: author ID is in provided list
-- `username`: username match with optional case sensitivity
-- `discriminator`: discriminator match
-- `roleId`: checks mentioned roles in message
-- `authorType`: `"bot"` or `"human"`
-  - `"human"` matches only messages where author exists and `author.bot !== true`
-- `betweenUsers`: author is either user A or B
+### Author & Identity
 
-### Time/Snowflake Conditions
+| `kind`          | Parameters                                 | Description                                                           |
+| --------------- | ------------------------------------------ | --------------------------------------------------------------------- |
+| `authorId`      | `values: string[]`                         | Matches if the sender ID is inside the array.                         |
+| `username`      | `value: string`, `caseSensitive?: boolean` | Matches username (substring or exact regex).                          |
+| `discriminator` | `value: string`                            | Matches explicit `#xxxx` discriminators.                              |
+| `roleId`        | `values: string[]`                         | True if the message mentions one of these Roles.                      |
+| `authorType`    | `value: 'bot' \| 'human'`                  | Human matching requires an author to exist and `author.bot !== true`. |
+| `betweenUsers`  | `userA: string`, `userB: string`           | Enforces the message author to be one of the two IDs.                 |
 
-- `date`: `after` / `before` ISO strings
-- `relativeTime`: `lastDays`, `lastHours`, `lastMessages`
-- `snowflake`: compares message IDs via `BigInt`
+### Chronology & Snowflakes
 
-### Content Conditions
+| `kind`         | Parameters                              | Description                                                 |
+| -------------- | --------------------------------------- | ----------------------------------------------------------- |
+| `date`         | `after?: string`, `before?: string`     | ISO-8601 string bounds.                                     |
+| `relativeTime` | `lastDays`, `lastHours`, `lastMessages` | Useful for dynamic daily dumps.                             |
+| `snowflake`    | `afterId?: string`, `beforeId?: string` | Chronological comparison utilizing native Discord `BigInt`. |
 
-- `contentContains`: term search with mode `"any"` or `"all"` and case control
-- `regex`: JavaScript regex pattern/flags
-- `has`:
-  - `link`
-  - `attachment`
-  - `image`
-  - `video`
-  - `embed`
-  - `reaction`
-  - `emoji` (unicode + custom emoji format)
-  - `mention`
-  - `codeblock`
-- `length`: min/max content length
+### Content Constraints
 
-### Type/State/Scope Conditions
+| `kind`            | Parameters                                                                                            | Description                                                         |
+| ----------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `contentContains` | `terms: string[]`, `mode: 'any'\|'all'`, `caseSensitive?: boolean`                                    | Basic text search.                                                  |
+| `regex`           | `pattern: string`, `flags?: string`                                                                   | Executes native V8 Javascript RegEx evaluations on message content. |
+| `has`             | `value: 'link'\|'attachment'\|'image'\|'video'\|'embed'\|'reaction'\|'emoji'\|'mention'\|'codeblock'` | Quick structural checks.                                            |
+| `length`          | `min?: number`, `max?: number`                                                                        | Constrains message string length.                                   |
 
-- `messageType`: numeric Discord message types
-- `state`:
-  - `edited`
-  - `deleted`
-  - `pinned`
-  - `thread`
-  - `reply`
-  - `slash`
-  - `system`
-  - `poll`
-  - `components`
-- `scope`:
-  - `channelIds`
-  - `categoryIds` (requires `filterContext.categoryByChannelId`)
-  - `threadIds`
-  - `ticketIds` (requires `filterContext.ticketByChannelId`)
+### Classification & Scopes
 
-## Predicate Callback
+| `kind`        | Parameters                                                                                         | Description                                                                                                                |
+| ------------- | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `messageType` | `values: number[]`                                                                                 | Explicit Discord API [Type constants](https://discord.com/developers/docs/resources/message#message-object-message-types). |
+| `state`       | `value: 'edited'\|'deleted'\|'pinned'\|'thread'\|'reply'\|'slash'\|'system'\|'poll'\|'components'` | Checks object statuses.                                                                                                    |
+| `scope`       | `value: 'channelIds'\|'categoryIds'\|'threadIds'\|'ticketIds'`                                     | Requires the injection of `filterContext` map definitions.                                                                 |
+
+---
+
+## 👩‍💻 Predicate Callback (`predicate`)
+
+For dynamic requirements that DSL structures cannot describe efficiently (e.g., matching User statuses to an external database during execution), provide a callback algorithm:
 
 ```ts
 type MessagePredicate = (
@@ -82,9 +79,9 @@ type MessagePredicate = (
 ) => boolean | Promise<boolean>;
 ```
 
-Use this for custom logic not expressible via DSL.
+### Callback Constraints
 
-## Context Passed to Filters
+Every predicate execution is provided alongside contextual details to prevent duplicated work:
 
 ```ts
 interface FilterContext {
@@ -92,11 +89,15 @@ interface FilterContext {
   categoryByChannelId: Record<string, string>;
   ticketByChannelId: Record<string, string>;
   now: Date;
-  indexFromEnd: number;
+  indexFromEnd: number; // Useful for slicing "last X messages" dynamically
 }
 ```
 
-## Example
+---
+
+## 📜 Full Syntax Example
+
+Here is a complex filter setup executed inside `exportChannel(request)` that limits the export strictly to **Human Authors** who either **posted an attachment** OR used **urgent terminology**.
 
 ```ts
 filters: {
@@ -107,7 +108,7 @@ filters: {
       op: "OR",
       conditions: [
         { kind: "has", value: "attachment" },
-        { kind: "regex", pattern: "urgent|critical", flags: "i" }
+        { kind: "regex", pattern: "urgent|critical|broken", flags: "i" }
       ]
     }
   ]
