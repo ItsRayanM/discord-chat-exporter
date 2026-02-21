@@ -3,6 +3,7 @@ export type {
   TranscriptDocument,
   TranscriptMeta,
   TranscriptChannel,
+  TranscriptGuild,
   TranscriptParticipant,
   TranscriptAttachment,
   TranscriptMessage,
@@ -12,9 +13,11 @@ export type {
 export type {
   RenderOptions,
   HtmlRenderOptions,
+  HtmlDiscordPanels,
   SplitPolicy,
   OutputTargetMode,
   OutputDiscordOptions,
+  DiscordEmbedData,
   OutputDatabaseOptions,
   OutputStorageOptions,
   StorageTarget,
@@ -51,6 +54,7 @@ export type {
 export type { ExportRequest, BatchExportRequest, BatchExportOptions } from "./request.js";
 export type {
   DiscordDeliveryResult,
+  DiscordDeliveryContext,
   DatabaseDeliveryResult,
   StorageDeliveryResult,
   WebhookDeliveryResult,

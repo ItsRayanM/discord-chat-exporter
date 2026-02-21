@@ -26,6 +26,13 @@ export interface TranscriptChannel {
   createdAt?: string;
 }
 
+/** Guild/server info for full Discord UI. */
+export interface TranscriptGuild {
+  id: string;
+  name?: string;
+  iconUrl?: string;
+}
+
 export interface TranscriptParticipant {
   id: string;
   username: string;
@@ -126,6 +133,10 @@ export interface TranscriptDocument {
   meta: TranscriptMeta;
   channel: TranscriptChannel;
   threads: TranscriptChannel[];
+  /** Guild/server for full Discord UI (when export included guild fetch). */
+  guild?: TranscriptGuild;
+  /** Guild channels list for full Discord UI (when export included guild fetch). */
+  guildChannels?: TranscriptChannel[];
   participants: TranscriptParticipant[];
   messages: TranscriptMessage[];
   attachmentsManifest: AttachmentManifestEntry[];

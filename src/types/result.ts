@@ -21,6 +21,17 @@ export interface DiscordDeliveryResult {
   uploadedFiles: number;
 }
 
+/** Context passed to output.discord.getContent / getEmbed / getEmbeds when sending to Discord. */
+export interface DiscordDeliveryContext {
+  /** Artifacts in this batch (or all if single message). */
+  artifacts: RenderArtifact[];
+  channelId: string;
+  /** Pre-rendered file list text (e.g. "Files:\n- a.html (html-single, 12 KB)"). */
+  fileListText: string;
+  batchIndex: number;
+  batchCount: number;
+}
+
 export interface DatabaseDeliveryResult {
   driver: string;
   exportId: string | number;

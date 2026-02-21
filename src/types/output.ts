@@ -13,12 +13,28 @@ export interface RenderOptions {
   splitPolicy?: SplitPolicy;
 }
 
+/**
+ * Which panels to show in the full Discord-style HTML layout.
+ * Omit or set a panel to true to show it; set to false to hide.
+ * When omitted entirely, all panels are shown when guild data is available.
+ */
+export interface HtmlDiscordPanels {
+  /** Show server list (guild icon/name) on the left. Default true. */
+  serverList?: boolean;
+  /** Show channel list sidebar. Default true. */
+  channelList?: boolean;
+  /** Show members sidebar on the right. Default true. */
+  membersSidebar?: boolean;
+}
+
 export interface HtmlRenderOptions {
   mode?: "single-file" | "bundle" | "both";
   searchable?: boolean;
   accessibilityMode?: boolean;
   templatePath?: string;
   template?: string;
+  /** Customize which Discord-style panels to show in HTML export. Omit to show all. */
+  panels?: HtmlDiscordPanels;
 }
 
 export interface SplitPolicy {
@@ -28,10 +44,57 @@ export interface SplitPolicy {
 
 export type OutputTargetMode = "filesystem" | "discord-channel" | "both";
 
+/**
+ * Discord embed payload (subset of Discord API embed object).
+ * Use with output.discord.embed / getEmbed / embeds / getEmbeds.
+ * @see https://discord.com/developers/docs/resources/channel#embed-object
+ */
+export interface DiscordEmbedData {
+  title?: string;
+  description?: string;
+  url?: string;
+  color?: number;
+  timestamp?: string;
+  footer?: { text: string; icon_url?: string };
+  image?: { url: string };
+  thumbnail?: { url: string };
+  author?: { name: string; url?: string; icon_url?: string };
+  fields?: Array<{ name: string; value: string; inline?: boolean }>;
+}
+
 export interface OutputDiscordOptions {
   channelId: string;
   token?: string;
   content?: string;
+  /**
+   * If true, the exporter will append (or inject) a readable list of the
+   * attached artifacts' filenames into the Discord message content.
+   *
+   * You can also place `{{files}}` inside `content` to inject the file list
+   * exactly where you want.
+   */
+  includeFileList?: boolean;
+  /**
+   * Function to build message content (and optionally use {{files}}).
+   * Receives DiscordDeliveryContext; result can still contain {{files}} which is replaced.
+   */
+  getContent?: (ctx: import("./result.js").DiscordDeliveryContext) => string | Promise<string>;
+  /**
+   * Optional embed (e.g. rich "Transcript ready" card). Max 1 if using embed/getEmbed.
+   */
+  embed?: DiscordEmbedData;
+  /**
+   * Function to build a single embed from context.
+   */
+  getEmbed?: (ctx: import("./result.js").DiscordDeliveryContext) => DiscordEmbedData | Promise<DiscordEmbedData>;
+  /**
+   * Optional embeds (max 10 per message). Ignored if embed/getEmbed is set.
+   */
+  embeds?: DiscordEmbedData[];
+  /**
+   * Function to build embeds from context (max 10).
+   */
+  getEmbeds?: (ctx: import("./result.js").DiscordDeliveryContext) => DiscordEmbedData[] | Promise<DiscordEmbedData[]>;
 }
 
 export interface OutputDatabaseOptions {
