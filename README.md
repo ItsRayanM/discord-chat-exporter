@@ -332,6 +332,16 @@ Native AI plugins parse large channels intelligently and return analytics and su
 - `anthropic`: Register `AnthropicClaudeProvider` with `ANTHROPIC_API_KEY`.
 - `openai-compatible`: Use `OpenAICompatibleProvider` for systems with OpenAI-style APIs like Groq, Mistral, Together, and xAI.
 
+### 🤖 Do you use AI? Gotcha, you can use Context7!
+
+**Context7** brings up-to-date, version-specific documentation and code examples directly into AI coding assistants (like Cursor, Windsurf, or Claude Code), preventing outdated code or hallucinated APIs. [Learn more about Context7](https://context7.mintlify.dev/).
+
+**Example Prompt in your AI IDE:**
+
+> "Hey AI, use context7 to get the latest documentation for `@rayanmustafa/discord-chat-exporter`, then write a CLI script to export a channel to HTML and upload it to an S3 bucket with redaction enabled."
+
+This ensures your AI assistant always uses the exact CLI flags and API methods supported by the current version!
+
 ### Cloud Storage Sinks (`output.storage`)
 
 - `s3` (AWS S3, Cloudflare R2, MinIO)
