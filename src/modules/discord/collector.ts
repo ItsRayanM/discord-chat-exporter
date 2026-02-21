@@ -1,14 +1,16 @@
 /**
- * Collects channel, threads, and messages from Discord via the API client.
+ * Collects channel, threads, messages, and optionally guild + channels from Discord via the API client.
  */
 import type { DiscordApiClient } from "@/modules/discord/discord-api.js";
 import type { ExportRequest } from "@/types.js";
-import type { RawChannel, RawMessage } from "@/modules/discord/discord-api.js";
+import type { RawChannel, RawGuild, RawMessage } from "@/modules/discord/discord-api.js";
 
 export interface CollectedData {
   channel: RawChannel;
   threads: RawChannel[];
   messages: RawMessage[];
+  guild?: RawGuild;
+  guildChannels?: RawChannel[];
   limitations: string[];
 }
 
@@ -23,6 +25,19 @@ export async function collectMessages(options: {
   const channel = await api.getChannel(request.channelId);
   const threads: RawChannel[] = [];
   const messages: RawMessage[] = [];
+
+  const guildId = channel.guild_id ?? request.guildId;
+  let guild: RawGuild | undefined;
+  let guildChannels: RawChannel[] | undefined;
+  if (guildId) {
+    try {
+      guild = await api.getGuild(guildId);
+      guildChannels = await api.getGuildChannels(guildId);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      warnings.push(`Could not fetch guild/channels for full UI: ${msg}`);
+    }
+  }
 
   const mainMessages = await api.getAllChannelMessages(request.channelId);
   messages.push(...mainMessages);
@@ -44,6 +59,8 @@ export async function collectMessages(options: {
     channel,
     threads,
     messages,
+    guild,
+    guildChannels,
     limitations,
   };
 }

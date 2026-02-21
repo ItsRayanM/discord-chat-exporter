@@ -27,10 +27,18 @@ export interface RawChannel {
   id: string;
   name?: string;
   type?: number;
+  guild_id?: string;
   parent_id?: string | null;
   owner_id?: string | null;
   archived?: boolean;
   thread_metadata?: { create_timestamp?: string };
+}
+
+/** Raw Discord API guild object (subset we use). */
+export interface RawGuild {
+  id: string;
+  name?: string;
+  icon?: string | null;
 }
 
 /** Raw Discord API message object (subset we use). */
@@ -140,5 +148,15 @@ export class DiscordApiClient {
       if (!before) break;
     }
     return out;
+  }
+
+  /** Fetch guild by id (for full Discord UI). */
+  async getGuild(guildId: string): Promise<RawGuild> {
+    return this.request<RawGuild>(`/guilds/${guildId}?with_counts=false`);
+  }
+
+  /** Fetch guild channels (for full Discord UI). */
+  async getGuildChannels(guildId: string): Promise<RawChannel[]> {
+    return this.request<RawChannel[]>(`/guilds/${guildId}/channels`);
   }
 }
