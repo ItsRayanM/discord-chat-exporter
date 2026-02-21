@@ -76,6 +76,14 @@ export async function buildBaseExportRequest(options: unknown): Promise<Omit<Exp
         searchable: Boolean(parsed.htmlSearchable),
         accessibilityMode: Boolean(parsed.htmlAccessibility),
         templatePath: parsed.htmlTemplate,
+        panels:
+          parsed.htmlNoServerList || parsed.htmlNoChannelList || parsed.htmlNoMembers
+            ? {
+                serverList: !parsed.htmlNoServerList,
+                channelList: !parsed.htmlNoChannelList,
+                membersSidebar: !parsed.htmlNoMembers,
+              }
+            : undefined,
       },
       splitPolicy:
         parsed.splitMaxMessages || parsed.splitMaxBytes
