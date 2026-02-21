@@ -1,6 +1,6 @@
 {
   "name": "@rayanmustafa/discord-chat-exporter",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "High-fidelity Discord chat exporter for bots with multi-format outputs",
   "main": "./dist/index.js",
   "scripts": {
