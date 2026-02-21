@@ -23,6 +23,30 @@ export interface TocEntry {
   count: number;
 }
 
+/** Guild/server for full Discord UI. */
+export interface HtmlGuildView {
+  id: string;
+  name?: string;
+  iconUrl?: string;
+}
+
+/** Channel for full Discord UI (channel list). */
+export interface HtmlChannelView {
+  id: string;
+  name?: string;
+  type?: number;
+  parentId?: string;
+}
+
+/** Member for full Discord UI (participants sidebar). */
+export interface HtmlMemberView {
+  id: string;
+  username: string;
+  globalName?: string;
+  avatarUrl?: string;
+  bot?: boolean;
+}
+
 export interface HtmlViewData {
   title: string;
   exportedAt: string;
@@ -35,6 +59,16 @@ export interface HtmlViewData {
   accessibilityMode: boolean;
   toc: TocEntry[];
   chunk?: { index: number; total: number };
+  /** Full Discord UI: current channel (id, name, type, parentId). */
+  channel?: HtmlChannelView;
+  /** Full Discord UI: guild/server (id, name, iconUrl). */
+  guild?: HtmlGuildView;
+  /** Full Discord UI: guild channels list for sidebar. */
+  channels?: HtmlChannelView[];
+  /** Full Discord UI: members (participants) for sidebar. */
+  members?: HtmlMemberView[];
+  /** Resolved panel visibility: which Discord-style panels to show. */
+  panels?: { serverList: boolean; channelList: boolean; membersSidebar: boolean };
 }
 
 export interface SearchIndexData {

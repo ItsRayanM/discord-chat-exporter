@@ -1,7 +1,15 @@
 import MarkdownIt from "markdown-it";
 import type { RenderContext, TranscriptMessage } from "@/types.js";
 import { escapeHtml } from "@/modules/rendering/infrastructure/html/escape-html.js";
-import type { HtmlMessageView, HtmlViewData, SearchIndexData, TocEntry } from "@/modules/rendering/infrastructure/html/types.js";
+import type {
+  HtmlMessageView,
+  HtmlViewData,
+  HtmlGuildView,
+  HtmlChannelView,
+  HtmlMemberView,
+  SearchIndexData,
+  TocEntry,
+} from "@/modules/rendering/infrastructure/html/types.js";
 
 export function buildViewData(ctx: RenderContext): HtmlViewData {
   const md = new MarkdownIt({
@@ -45,6 +53,43 @@ export function buildViewData(ctx: RenderContext): HtmlViewData {
     };
   });
 
+  const guild: HtmlGuildView | undefined = ctx.transcript.guild
+    ? {
+        id: ctx.transcript.guild.id,
+        name: ctx.transcript.guild.name,
+        iconUrl: ctx.transcript.guild.iconUrl,
+      }
+    : undefined;
+
+  const channel: HtmlChannelView | undefined = {
+    id: ctx.transcript.channel.id,
+    name: ctx.transcript.channel.name,
+    type: ctx.transcript.channel.type,
+    parentId: ctx.transcript.channel.parentId,
+  };
+
+  const channels: HtmlChannelView[] | undefined = ctx.transcript.guildChannels?.map((c) => ({
+    id: c.id,
+    name: c.name,
+    type: c.type,
+    parentId: c.parentId,
+  }));
+
+  const members: HtmlMemberView[] | undefined = ctx.transcript.participants.map((p) => ({
+    id: p.id,
+    username: p.username,
+    globalName: p.globalName,
+    avatarUrl: p.avatarUrl,
+    bot: p.bot,
+  }));
+
+  const panelsConfig = ctx.request.render?.html?.panels;
+  const panels = {
+    serverList: panelsConfig?.serverList !== false,
+    channelList: panelsConfig?.channelList !== false,
+    membersSidebar: panelsConfig?.membersSidebar !== false,
+  };
+
   return {
     title: `Transcript: ${ctx.transcript.channel.name ?? ctx.transcript.channel.id}`,
     exportedAt: ctx.transcript.exportedAt,
@@ -57,6 +102,11 @@ export function buildViewData(ctx: RenderContext): HtmlViewData {
     accessibilityMode: ctx.request.render?.html?.accessibilityMode ?? false,
     toc: buildToc(messages, ctx.request.render?.includeTableOfContents ?? false),
     chunk: ctx.transcript.meta.chunk,
+    guild,
+    channel,
+    channels,
+    members,
+    panels,
   };
 }
 
