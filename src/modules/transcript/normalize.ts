@@ -4,12 +4,13 @@
 import type {
   TranscriptDocument,
   TranscriptChannel,
+  TranscriptGuild,
   TranscriptMessage,
   TranscriptParticipant,
   TranscriptAttachment,
   AttachmentManifestEntry,
 } from "@/types.js";
-import type { RawChannel, RawMessage } from "@/modules/discord/discord-api.js";
+import type { RawChannel, RawGuild, RawMessage } from "@/modules/discord/discord-api.js";
 import { EXPORTER_VERSION } from "@/shared/constants.js";
 
 function rawChannelToTranscriptChannel(raw: RawChannel): TranscriptChannel {
@@ -26,11 +27,15 @@ function rawChannelToTranscriptChannel(raw: RawChannel): TranscriptChannel {
 
 function rawAuthorToParticipant(author: RawMessage["author"]): TranscriptParticipant | undefined {
   if (!author) return undefined;
+  const avatarUrl = author.avatar
+    ? `https://cdn.discordapp.com/avatars/${author.id}/${author.avatar}.png?size=32`
+    : undefined;
   return {
     id: author.id,
     username: author.username ?? "unknown",
     globalName: author.global_name,
     discriminator: author.discriminator,
+    avatarUrl,
     bot: author.bot,
   };
 }
@@ -100,10 +105,23 @@ function rawMessageToTranscriptMessage(raw: RawMessage): TranscriptMessage {
   };
 }
 
+function rawGuildToTranscriptGuild(raw: RawGuild): TranscriptGuild {
+  const iconUrl = raw.icon
+    ? `https://cdn.discordapp.com/icons/${raw.id}/${raw.icon}.png?size=128`
+    : undefined;
+  return {
+    id: raw.id,
+    name: raw.name,
+    iconUrl,
+  };
+}
+
 export function buildTranscript(options: {
   channel: RawChannel;
   threads: RawChannel[];
   messages: RawMessage[];
+  guild?: RawGuild;
+  guildChannels?: RawChannel[];
   formats: string[];
   warnings: string[];
   limitations: string[];
@@ -118,9 +136,10 @@ export function buildTranscript(options: {
     channel,
     threads,
     messages,
+    guild: rawGuild,
+    guildChannels: rawGuildChannels,
     formats,
     limitations,
-    guildId,
     timezone = "UTC",
     timestampFormat = "24h",
     theme = "discord-dark-like",
@@ -158,6 +177,7 @@ export function buildTranscript(options: {
     exporter: { name: "@rayanmustafa/discord-chat-exporter", version: exporterVersion },
     meta: {
       sourceChannelIds: [channel.id, ...threads.map((t) => t.id)],
+      guildId: rawGuild?.id,
       intentsSatisfied: { messageContent: true },
       formats,
       timezone,
@@ -168,6 +188,8 @@ export function buildTranscript(options: {
     },
     channel: rawChannelToTranscriptChannel(channel),
     threads: threads.map(rawChannelToTranscriptChannel),
+    guild: rawGuild ? rawGuildToTranscriptGuild(rawGuild) : undefined,
+    guildChannels: rawGuildChannels?.map(rawChannelToTranscriptChannel),
     participants,
     messages: transcriptMessages,
     attachmentsManifest,

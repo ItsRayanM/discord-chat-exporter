@@ -176,6 +176,8 @@ export class DiscordChatExporter {
         channel: collected.channel,
         threads: collected.threads,
         messages: collected.messages,
+        guild: collected.guild,
+        guildChannels: collected.guildChannels,
         formats: resolvedRequest.formats.map(String),
         warnings,
         limitations,
